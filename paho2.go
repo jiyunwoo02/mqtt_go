@@ -32,7 +32,7 @@ func main() {
 	opts := mqtt.NewClientOptions()                          // MQTT 클라이언트 옵션 생성
 	opts.AddBroker(fmt.Sprintf("tcp://%s:%d", broker, port)) // 브로커 주소 설정
 	opts.SetClientID("go_mqtt_client")                       // 클라이언트 ID 설정
-	opts.SetUsername("user")                                 // MQTT 서버 접속을 위한 사용자 이름 설정``
+	opts.SetUsername("user")                                 // MQTT 서버 접속을 위한 사용자 이름 설정
 	opts.SetPassword("password")                             // MQTT 서버 접속을 위한 비밀번호 설정
 
 	opts.OnConnect = connectHandler            // 연결 성공 시 호출될 핸들러 설정
