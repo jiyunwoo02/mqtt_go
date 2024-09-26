@@ -1,7 +1,7 @@
 // go get github.com/DrmagicE/gmqtt/server@v0.5.0
 // go get github.com/DrmagicE/gmqtt/config@v0.5.0
 // go get github.com/DrmagicE/gmqtt
-module gmqtt_code
+module gmqtt_code_fail
 
 go 1.22.5
 

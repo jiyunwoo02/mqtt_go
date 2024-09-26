@@ -7,16 +7,16 @@ import (
 	"time"
 
 	"github.com/DrmagicE/gmqtt"
+	"github.com/DrmagicE/gmqtt/server"
 )
 
 func main() {
 	// 클라이언트 옵션 설정
 	opts := &gmqtt.ClientOptions{
-		ClientID:     "testClient",
-		CleanSession: true,
+		ClientID: "testClient",
 	}
 
-	// 클라이언트 생성
+	// 클라이언트 생성 -> 9/26 gmqtt는 클라이언트 생성 지원 X
 	client := gmqtt.NewClient(opts)
 
 	// 브로커에 연결
@@ -34,7 +34,7 @@ func main() {
 	// 메시지 발행
 	client.Publish(context.Background(), &gmqtt.Message{
 		Topic:   "test/topic",
-		QOS:     0,
+		QoS:     0,
 		Payload: []byte("Hello, MQTT!"),
 	})
 

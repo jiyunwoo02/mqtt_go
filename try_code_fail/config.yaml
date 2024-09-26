@@ -1,0 +1,17 @@
+# gmqtt config.go 파일 참고
+# broker가 지정되어 있지 않아, 별도로 설정 파일을 만들었다
+# 해당 설정 파일의 브로커 코드에서 읽어 코드에서 사용하도록 한다
+
+mqtt:
+  tcp:
+    address: ":1884"
+
+log:
+  level: "info"
+
+broker:
+  address: "localhost"
+  port: 1883
+
+persistence:
+  type: "memory"
