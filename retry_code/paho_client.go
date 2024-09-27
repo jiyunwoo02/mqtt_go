@@ -6,9 +6,10 @@ import (
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	// The client depends on Google's proxy package and the websockets package:
 )
 
-// 메시지 수신 핸들러
+// 메시지 수신 핸들러: 주제에 재해 발행한 메시지가 구독자에게 발행된 경우에 실행되는 callback 타입
 var msgHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
 	fmt.Printf("수신한 메시지: 토픽 [%s] - 메시지 [%s]\n", msg.Topic(), msg.Payload())
 }
