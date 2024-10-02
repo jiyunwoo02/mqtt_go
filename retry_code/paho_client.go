@@ -6,10 +6,9 @@ import (
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
-	// The client depends on Google's proxy package and the websockets package:
 )
 
-// 메시지 수신 핸들러: 주제에 재해 발행한 메시지가 구독자에게 발행된 경우에 실행되는 callback 타입
+// 메시지 수신 핸들러: 주제에 대해 발행한 메시지가 구독자에게 발행된 경우에 실행되는 callback 타입
 var msgHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
 	fmt.Printf("수신한 메시지: 토픽 [%s] - 메시지 [%s]\n", msg.Topic(), msg.Payload())
 }
@@ -58,7 +57,7 @@ func main() {
 	// 3sec 동안 대기하여 메시지 수신 대기
 	time.Sleep(3 * time.Second)
 
-	// 250millisec 후 클라이언트 종료
+	// 250millisec 기다린 후 클라이언트 종료
 	subscriberClient.Disconnect(250)
 	publisherClient.Disconnect(250)
 	fmt.Println("클라이언트 종료됨")
@@ -102,4 +101,16 @@ if token := subscriberClient.Connect(); token.Wait() && token.Error() != nil {
 - PublishToken은 메시지 발행 작업을 관리
 - SubscribeToken은 구독 작업을 추적
 
+4. callback function
+: 콜백 함수는 전달인자로 다른 함수에 전달되는 함수
+
+[위키백과]
+프로그래밍에서 콜백(callback) 또는 콜백 함수(callback function)는 다른 코드의 인수로서 넘겨주는 실행 가능한 코드를 말한다.
+콜백을 넘겨받는 코드는 이 콜백을 필요에 따라 즉시 실행할 수도 있고, 아니면 나중에 실행할 수도 있다.
+
+일반적으로 콜백수신 코드로 콜백 코드(함수)를 전달할 때는 콜백 함수의 포인터 (핸들), 서브루틴 또는 람다함수의 형태로 넘겨준다.
+콜백수신 코드는 실행하는 동안에 넘겨받은 콜백 코드를 필요에 따라 호출하고 다른 작업을 실행하는 경우도 있다.
+다른 방식으로는 콜백수신 코드는 넘겨받은 콜백 함수를 '핸들러'로서 등록하고, 콜백수신 함수의 동작 중 어떠한 반응의 일부로서 나중에 호출할 때 사용할 수도 있다 (비동기 콜백).
+
+콜백은 코드 재사용을 할 때 유용하다.
 */
