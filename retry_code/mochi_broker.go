@@ -16,15 +16,18 @@ func main() {
 	sigs := make(chan os.Signal, 1) // 신호 수신, buffer = 1
 	done := make(chan bool, 1)      // 서버가 종료될 때 사용, buffer = 1
 
-	// SIGINT(인터럽트, Ctrl + C) 또는 SIGTERM(종료)을 받으면 신호 채널에 전달
+	// SIGINT(인터럽트, Ctrl + C) 또는 SIGTERM(종료, kill)을 받으면 신호 채널에 전달
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	// 새로운 MQTT 서버 생성
 	server := mqtt.New(nil) // 기본 설정 사용하여 서버 생성
 
 	// 모든 연결 요청을 허용하도록 인증 훅 추가
+	// 훅(Hook)은 서버의 특정 이벤트나 행동에 개입할 수 있도록 해주는 함수나 로직
 	_ = server.AddHook(new(auth.AllowHook), nil) // nil : 추가 설정 없이 기본 동작을 사용
-	// auth.AllowHook은 기본적으로 모든 인증 요청을 허용하는 훅 (=인증 및 권환 확인 절차 pass)
+	// auth.AllowHook은 인증 절차 없이 모든 클라이언트를 받아들이는 동작 수행, 기본적으로 모든 인증 요청을 허용하는 훅 (=인증 및 권환 확인 절차 pass)
+	// Go 언어에서 _는 빈 식별자(blank identifier)로, 값을 무시하거나 필요 없는 값을 처리할 때 사용
+	// -> server.AddHook() 함수가 반환하는 값을 사용하지 않겠다는 의미
 
 	// 기본 포트(1883)에서 TCP 리스너를 생성
 	tcp := listeners.NewTCP(listeners.Config{ // 1883 포트에서 수신할 TCP 리스너를 생성
@@ -32,7 +35,7 @@ func main() {
 		Address: ":1883", // 리스너 주소 및 포트 설정
 	})
 
-	// 서버에 TCP 리스너를 추가합니다.
+	// 서버에 TCP 리스너를 추가
 	// -> 서버는 리스너가 수신하는 모든 연결을 처리
 	err := server.AddListener(tcp)
 	if err != nil { // 리스너 추가 시 오류가 발생하면 로그 출력하고 프로그램 종료

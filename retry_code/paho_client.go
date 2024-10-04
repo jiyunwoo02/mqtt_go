@@ -60,6 +60,7 @@ func main() {
 	// 250millisec 기다린 후 클라이언트 종료
 	subscriberClient.Disconnect(250)
 	publisherClient.Disconnect(250)
+
 	fmt.Println("클라이언트 종료됨")
 }
 
@@ -67,6 +68,27 @@ func main() {
 
 1. token이란?
 : 클라이언트가 서버와의 비동기 작업(연결, 메시지 발행, 구독 등)의 상태와 결과를 추적하고 관리
+
+- In the context of the Paho MQTT library,
+	a token is a structure used to track the state of an MQTT operation,
+	such as a connection, publish, subscribe, or unsubscribe action.
+- It represents an asynchronous operation and
+	allows you to track whether the operation has completed,
+	whether it has succeeded or failed,
+	and retrieve any error messages if the operation failed.
+- In summary, while token may seem like a data type,
+	it is more accurately described as a state-tracking mechanism for MQTT operations in the Paho library.
+
+- Technically, the token in Paho is a struct that implements the Token interface in Go.
+
+- The Token interface provides methods such as:
+	1) Wait(): Blocks the execution until the operation represented by the token is complete.
+	2) WaitTimeout(timeout time.Duration): Blocks the execution for a specified time or until the operation is complete.
+	3) Error(): Returns the error if the operation failed, otherwise it returns nil.
+	
+-> Since it implements an interface, it's not just a basic data type,
+	but a mechanism to handle the state of the operation.
+	It encapsulates the process of checking whether the MQTT operation was successful or encountered any errors.
 
 2. 코드 분석
 if token := subscriberClient.Connect(); token.Wait() && token.Error() != nil {
