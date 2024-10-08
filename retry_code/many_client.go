@@ -28,9 +28,9 @@ func main() {
 	// 첫 번째 브로커에 연결하는 발행자1 클라이언트 옵션 설정 (포트 1883)
 	publisherOpts := mqtt.NewClientOptions().
 		AddBroker("tcp://localhost:1883"). // 첫 번째 브로커 주소
-		SetClientID("publisherClient1").
-		SetUsername("username").
-		SetPassword("password")
+		SetClientID("publisher1").
+		SetUsername("username1").
+		SetPassword("password1")
 
 	// 첫 번째 발행자 클라이언트 생성
 	publisherClient1 := mqtt.NewClient(publisherOpts)
@@ -42,9 +42,9 @@ func main() {
 	// 두 번째 브로커에 연결하는 발행자2 클라이언트 옵션 설정 (포트 1884)
 	publisherOpts2 := mqtt.NewClientOptions().
 		AddBroker("tcp://localhost:1884"). // 두 번째 브로커 주소
-		SetClientID("publisherClient2").
-		SetUsername("username").
-		SetPassword("password")
+		SetClientID("publisher2").
+		SetUsername("username2").
+		SetPassword("password2")
 
 	// 두 번째 발행자 클라이언트 생성
 	publisherClient2 := mqtt.NewClient(publisherOpts2)
@@ -56,8 +56,8 @@ func main() {
 	// 구독자1 클라이언트 옵션 설정 (포트 1883)
 	subscriberOpts := mqtt.NewClientOptions().
 		AddBroker("tcp://localhost:1883"). // 첫 번째 브로커 주소
-		SetClientID("subscriberClient")
-		//SetDefaultPublishHandler(msgHandler)
+		SetClientID("subscriber1").
+		SetDefaultPublishHandler(msgHandler)
 
 	// 구독자1 클라이언트 생성
 	subscriberClient := mqtt.NewClient(subscriberOpts)
@@ -69,15 +69,15 @@ func main() {
 	// 구독자2 클라이언트 옵션 설정 (포트 1884)
 	subscriberOpts2 := mqtt.NewClientOptions().
 		AddBroker("tcp://localhost:1884").
-		SetClientID("subscriberClient2")
-		//SetDefaultPublishHandler(msgHandler2)
+		SetClientID("subscriber2").
+		SetDefaultPublishHandler(msgHandler2)
 
 	// 구독자2 클라이언트 생성
 	subscriberClient2 := mqtt.NewClient(subscriberOpts2)
 	if token := subscriberClient2.Connect(); token.Wait() && token.Error() != nil {
 		log.Fatalf("구독자 클라이언트 브로커에 연결 실패: %v\n", token.Error())
 	}
-	fmt.Printf("구독자1 %s 가 브로커 [%s]에 연결됨\n", subscriberOpts2.ClientID, subscriberOpts2.Servers[0].String())
+	fmt.Printf("구독자2 %s 가 브로커 [%s]에 연결됨\n", subscriberOpts2.ClientID, subscriberOpts2.Servers[0].String())
 
 	// 구독자1 test/topic 구독
 	if token := subscriberClient.Subscribe("test/topic", 0, msgHandler); token.Wait() && token.Error() != nil {
@@ -94,13 +94,13 @@ func main() {
 	}
 
 	// 발행자 클라이언트 1이 메시지 발행
-	message := "Hello, MQTT from Client 1!"
+	message := "Hello from Publisher1!"
 	token := publisherClient1.Publish("test/topic", 0, false, message)
 	token.Wait()
 	fmt.Printf("발행자1 %s 가 메시지 발행: %s\n", publisherOpts.ClientID, message)
 
 	// 발행자 클라이언트 2가 메시지 발행
-	message2 := "Hello, MQTT from Client 2!"
+	message2 := "Hello from Publisher2!"
 	token2 := publisherClient2.Publish("test/topic2", 0, false, message2)
 	token2.Wait()
 	fmt.Printf("발행자2 %s 가 메시지 발행: %s\n", publisherOpts2.ClientID, message2)
@@ -109,7 +109,8 @@ func main() {
 	// 구독자3 클라이언트 옵션 설정 (포트 1884)
 	subscriberOpts3 := mqtt.NewClientOptions().
 		AddBroker("tcp://localhost:1884").
-		SetClientID("subscriberClient3")
+		SetClientID("subscriber3").
+		SetDefaultPublishHandler(msgHandler2)
 
 	// 구독자3 클라이언트 생성
 	subscriberClient3 := mqtt.NewClient(subscriberOpts3)
@@ -126,7 +127,7 @@ func main() {
 	}
 
 	// 발행자 클라이언트 2가 메시지 발행
-	message3 := "Hello, MQTT from Client 2!"
+	message3 := "Hello2 from Publisher2!"
 	token3 := publisherClient2.Publish("test/topic2", 0, false, message3)
 	token3.Wait()
 	fmt.Printf("발행자2 %s 가 메시지 발행: %s\n", publisherOpts2.ClientID, message3)
@@ -134,8 +135,37 @@ func main() {
 	// 3초 동안 대기하여 메시지 수신 대기
 	time.Sleep(3 * time.Second)
 
+	// 발행자 클라이언트 1가 메시지 발행
+	message4 := "Hello2 from Publisher1!"
+	token4 := publisherClient1.Publish("test/topic", 0, true, message4)
+	token4.Wait()
+	fmt.Printf("발행자1 %s 가 메시지 발행 (retain): %s\n", publisherOpts.ClientID, message4)
+
+	// 구독자4가 주제가 이미 메시지를 발행한 후에 구독 -> retain=true를 통해 전달받음을 확인
+	// 구독자4 클라이언트 옵션 설정 (포트 1883)
+	subscriberOpts4 := mqtt.NewClientOptions().
+		AddBroker("tcp://localhost:1883").
+		SetClientID("subscriber4")
+
+	// 구독자4 클라이언트 생성
+	subscriberClient4 := mqtt.NewClient(subscriberOpts4)
+	if token := subscriberClient4.Connect(); token.Wait() && token.Error() != nil {
+		log.Fatalf("구독자 클라이언트 브로커에 연결 실패: %v\n", token.Error())
+	}
+	fmt.Printf("구독자4 %s 가 브로커 [%s]에 연결됨\n", subscriberOpts4.ClientID, subscriberOpts4.Servers[0].String())
+
+	// 구독자4 test/topic 구독
+	if token := subscriberClient4.Subscribe("test/topic", 0, msgHandler); token.Wait() && token.Error() != nil {
+		fmt.Printf("구독 오류: %v\n", token.Error())
+	} else {
+		fmt.Printf("구독자4 %s 가 test/topic 구독 완료\n", subscriberOpts4.ClientID)
+	}
+
 	// 클라이언트 종료
 	subscriberClient.Disconnect(250)
+	subscriberClient2.Disconnect(250)
+	subscriberClient3.Disconnect(250)
+	subscriberClient4.Disconnect(250)
 	publisherClient1.Disconnect(250)
 	publisherClient2.Disconnect(250)
 

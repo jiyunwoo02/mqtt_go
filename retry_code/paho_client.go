@@ -18,7 +18,7 @@
 // 	// 발행자 클라이언트 옵션 설정
 // 	publisherOpts := mqtt.NewClientOptions().
 // 		AddBroker("tcp://localhost:1883"). // 브로커 주소
-// 		SetClientID("publisherClient").    // 발행자 클라이언트 ID 설정
+// 		SetClientID("publisher").          // 발행자 클라이언트 ID 설정
 // 		SetUsername("username").           // 사용자 이름 설정 (필요시)
 // 		SetPassword("password")            // 비밀번호 설정 (필요시)
 
@@ -33,9 +33,8 @@
 
 // 	// 구독자 클라이언트 옵션 설정
 // 	subscriberOpts := mqtt.NewClientOptions().
-// 		AddBroker("tcp://localhost:1883").   // 브로커 주소
-// 		SetClientID("subscriberClient").     // 구독자 클라이언트 ID 설정
-// 		SetDefaultPublishHandler(msgHandler) // 기본 메시지 핸들러 설정
+// 		AddBroker("tcp://localhost:1883"). // 브로커 주소
+// 		SetClientID("subscriber")          // 구독자 클라이언트 ID 설정
 
 // 	// 구독자 클라이언트 객체 생성
 // 	subscriberClient := mqtt.NewClient(subscriberOpts)
@@ -44,16 +43,16 @@
 // 	}
 // 	fmt.Printf("구독자 %s 가 브로커 [%s]에 연결됨\n", subscriberOpts.ClientID, subscriberOpts.Servers[0].String())
 
-// 	// test/topic 구독
-// 	if token := subscriberClient.Subscribe("test/topic", 0, msgHandler); token.Wait() && token.Error() != nil {
+// 	// test/topic 구독 - qos 0,1,2로 바꾸면서 패킷 확인
+// 	if token := subscriberClient.Subscribe("test/topic", 1, msgHandler); token.Wait() && token.Error() != nil {
 // 		fmt.Printf("구독 오류: %v\n", token.Error())
 // 	} else {
 // 		fmt.Printf("구독자 %s 가 test/topic 구독 완료\n", subscriberOpts.ClientID)
 // 	}
 
-// 	// 발행자 클라이언트가 메시지 발행
+// 	// 발행자 클라이언트가 메시지 발행 - qos 0,1,2로 바꾸면서 패킷 확인
 // 	message := "Hello, MQTT!"
-// 	token := publisherClient.Publish("test/topic", 0, false, message)
+// 	token := publisherClient.Publish("test/topic", 1, false, message)
 // 	token.Wait()
 // 	fmt.Printf("발행자 %s 가 메시지 발행: %s\n", publisherOpts.ClientID, message)
 
