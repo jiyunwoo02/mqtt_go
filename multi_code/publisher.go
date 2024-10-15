@@ -16,10 +16,11 @@ func main() {
 		return
 	}
 
+	// 발행자 구동 시 명령행 인자 3개
 	// os.Args[0]는 publisher.go
-	brokerAddress := os.Args[1]
-	clientID := os.Args[2]
-	topic := os.Args[3]
+	brokerAddress := os.Args[1] // 브로커의 주소
+	clientID := os.Args[2]      // 발행자 클라이언트의 아이디
+	topic := os.Args[3]         // 발행자가 메시지를 발행할 주제
 
 	publisherOpts := mqtt.NewClientOptions().
 		AddBroker(brokerAddress).
@@ -38,7 +39,7 @@ func main() {
 	fmt.Printf("Enter messages to publish to topic '%s' (type 'exit' to quit): ", topic)
 	for scanner.Scan() {
 		message := scanner.Text()
-		if strings.ToLower(message) == "exit" { // 사용자 입력을 소문자로 변환하여 비교
+		if strings.ToLower(message) == "exit" { // 사용자 입력을 소문자로 변환하여 비교 (Exit, EXIT, ...)
 			break
 		}
 
@@ -62,6 +63,23 @@ func main() {
 	publisherClient.Disconnect(250)
 	fmt.Println("Publisher disconnected.")
 }
+
+/* 그런데 내가 발행하려는 메시지가 r로 시작하는 거면? 예) really?
+: 발행자가 retain 메시지가 아닌 메시지를 발행하려 하는데, r로 시작하는 경우는 어떻게 처리하는가?
+-> really를 발행하면, 앞의 r을 retain으로 간주해 retain 메시지로 eally가 발행된다.
+
+=> 이를 처리하기 위한 방법은?
+: 메시지에 특별한 접두어를 추가하여 retain 플래그를 제어해야 한다.
+예를 들어, retain 플래그를 활성화하려면 메시지 앞에 r/처럼 특정 문자열을 붙이도록 규칙을 정하는 방법이 있다.
+
+r/로 시작하면 retain 플래그를 true로 설정하고, 그렇지 않으면 retain을 설정하지 않는다.
+메시지가 r/로 시작하지 않으면 retain 플래그는 false로 유지된다.
+*/
+
+/* 그런데 내가 발행하려는 메시지가 r로 시작하는 거면? 예) rreally
+: 발행자가 rr로 시작하는 메시지를 발행하려 하는 경우는 어떻게 처리하는가?
+-> rreally를 발행하면, 앞의 r을 retain으로 간주해 retain 메시지로 really가 발행된다.
+*/
 
 /*
 1. scanner := bufio.NewScanner(os.Stdin)

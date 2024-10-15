@@ -14,14 +14,16 @@ var messageHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 
 func main() {
 	if len(os.Args) < 4 {
+		// 인자의 개수가 맞도록, 4 초과하는 경우더라도 정상 동작
 		fmt.Println("Usage: go run subscriber.go <broker_address> <client_id> <topic>")
 		return
 	}
 
+	// 구독자 구동 시 명령행 인자 3개
 	// os.Args[0]는 subscriber.go
-	brokerAddress := os.Args[1]
-	clientID := os.Args[2]
-	topic := os.Args[3]
+	brokerAddress := os.Args[1] // 브로커의 주소
+	clientID := os.Args[2]      // 구독자 클라이언트의 아이디
+	topic := os.Args[3]         // 구독자가 구독할 주제
 
 	subscriberOpts := mqtt.NewClientOptions().
 		AddBroker(brokerAddress).
