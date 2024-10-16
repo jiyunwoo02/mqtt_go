@@ -13,6 +13,11 @@ var messageHandler mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Messa
 }
 
 func main() {
+	// 배열의 각 요소를 순차적으로 출력
+	for i, arg := range os.Args {
+		fmt.Printf("Args[%d]: %s\n", i, arg)
+	}
+
 	if len(os.Args) < 4 {
 		// 인자의 개수가 맞도록, 4 초과하는 경우더라도 정상 동작
 		fmt.Println("Usage: go run subscriber.go <broker_address> <client_id> <topic>")
@@ -36,7 +41,8 @@ func main() {
 	}
 	fmt.Printf("구독자1 %s 가 브로커 [%s]에 연결됨\n", subscriberOpts.ClientID, subscriberOpts.Servers[0].String())
 
-	if token := subscriberClient.Subscribe(topic, 0, messageHandler); token.Wait() && token.Error() != nil {
+	// 메시지가 정확히 한 번 전달되도록 qos=2로 설정
+	if token := subscriberClient.Subscribe(topic, 2, messageHandler); token.Wait() && token.Error() != nil {
 		log.Fatalf("Failed to subscribe to topic '%s': %v\n", topic, token.Error())
 	}
 	fmt.Printf("Subscribed to topic '%s'\n", topic)

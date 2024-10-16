@@ -11,6 +11,10 @@ import (
 )
 
 func main() {
+	for i, arg := range os.Args {
+		fmt.Printf("Args[%d]: %s\n", i, arg)
+	}
+
 	if len(os.Args) < 4 {
 		fmt.Println("Usage: go run publisher.go <broker_address> <client_id> <topic>")
 		return
@@ -38,9 +42,11 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin) // bufio.Scanner는 줄바꿈(Newline)을 기준으로 입력을 구분
 	fmt.Printf("Enter messages to publish to topic '%s' (type 'exit' to quit): ", topic)
 	for scanner.Scan() {
+		// Scan(): 토큰 읽기 시도 (실패한 경우 false 반환, 일반적으로 더 읽을 수 없는 경우), Text(): 읽어온 토큰을 반환
+		// 토큰: 패턴에 해당하는 만큼 읽어온 문자열 (줄 단위로 읽을 때는 한 줄)
 		message := scanner.Text()
 		if strings.ToLower(message) == "exit" { // 사용자 입력을 소문자로 변환하여 비교 (Exit, EXIT, ...)
-			break
+			break // 현재 실행 중인 for 루프를 나가게 됨
 		}
 
 		// 추가 테스트) 메시지의 앞에 'r'이 있는 경우 retain = true
@@ -51,15 +57,19 @@ func main() {
 			// TrimPrefix returns s without the provided leading prefix string.
 			// If s doesn't start with prefix, s is returned unchanged.
 			message = strings.TrimPrefix(message, "r") // 'r'을 제거하고 메시지를 발행
-			// TrimSpace returns a slice of the string s, with all leading and trailing white space removed, as defined by Unicode
-			message = strings.TrimSpace(message) // 앞뒤 공백 제거
-		}
 
-		token := publisherClient.Publish(topic, 0, retain, message) // 메시지를 지정된 주제(topic)로 발행
-		token.Wait()                                                // 발행이 완료될 때까지 기다리도록 함
+		}
+		// TrimSpace returns a slice of the string s, with all leading and trailing white space removed, as defined by Unicode
+		// retain 메시지가 아니더라도, 앞뒤 공백을 제거할 수 있도록 메인 함수로 이동
+		message = strings.TrimSpace(message) // 앞뒤 공백 제거
+
+		// 메시지가 정확히 한 번 전달되도록 qos=2로 설정
+		token := publisherClient.Publish(topic, 2, retain, message) // 메시지를 지정된 주제(topic)로 발행
+		token.Wait()                                                // 발행이 완료될 때까지 기다리도록 함=
 		fmt.Printf("Published message: %s\n", message)
 	}
 
+	// for 루프를 빠져나온 후에 실행되는 코드
 	publisherClient.Disconnect(250)
 	fmt.Println("Publisher disconnected.")
 }
