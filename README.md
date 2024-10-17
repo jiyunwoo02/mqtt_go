@@ -29,3 +29,4 @@ MQTT(Message Queuing Telemetry Transport)
 - paho_code_succeed : GoLang의 paho 라이브러리를 사용해 브로커(mosquitto) 및 클라이언트 구동 및 연동 -> 성공
 - try_code_fail : GoLang의 gmqtt 라이브러를 사용해 브로커를, paho를 사용해 클라이언트 구동 및 연동 시도 -> gmqtt 실패, paho 성공 (추후 재시도)
 - retry_code : GoLang의 mochi 라이브러를 사용해 브로커를, paho를 사용해 클라이언트 구동 및 연동 시도 -> 성공
+- multi_code : 이전에 작업한 retry_code 중 발행자와 구독자가 합쳐져있던 클라이언트 코드 1개를 발행자와 구독자 코드 총 2개로 분해 및 명령행 인자 구현(command-line arguments)을 적용해 브로커 및 클라이언트 구동/연동 시도 -> 성공
