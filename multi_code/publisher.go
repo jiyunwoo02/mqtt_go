@@ -28,14 +28,13 @@ func main() {
 
 	publisherOpts := mqtt.NewClientOptions().
 		AddBroker(brokerAddress).
-		SetClientID(clientID).
-		SetCleanSession(true)
+		SetClientID(clientID)
 
 	publisherClient := mqtt.NewClient(publisherOpts)
 	if token := publisherClient.Connect(); token.Wait() && token.Error() != nil {
-		log.Fatalf("발행자1 브로커 연결 실패: %v\n", token.Error())
+		log.Fatalf("발행자 브로커 연결 실패: %v\n", token.Error())
 	}
-	fmt.Printf("발행자1 %s 가 브로커 [%s]에 연결됨\n", publisherOpts.ClientID, publisherOpts.Servers[0].String())
+	fmt.Printf("발행자 %s 가 브로커 [%s]에 연결됨\n", publisherOpts.ClientID, publisherOpts.Servers[0].String())
 
 	// Enter a loop to get user input and publish messages
 	// 사용자가 입력을 완료하고 엔터 키를 누르면 해당 입력을 한 줄로 받아들인다.

@@ -32,14 +32,13 @@ func main() {
 
 	subscriberOpts := mqtt.NewClientOptions().
 		AddBroker(brokerAddress).
-		SetClientID(clientID).
-		SetCleanSession(true)
+		SetClientID(clientID)
 
 	subscriberClient := mqtt.NewClient(subscriberOpts)
 	if token := subscriberClient.Connect(); token.Wait() && token.Error() != nil {
-		log.Fatalf("구독자1 브로커 연결 실패: %v\n", token.Error())
+		log.Fatalf("구독자 브로커 연결 실패: %v\n", token.Error())
 	}
-	fmt.Printf("구독자1 %s 가 브로커 [%s]에 연결됨\n", subscriberOpts.ClientID, subscriberOpts.Servers[0].String())
+	fmt.Printf("구독자 %s 가 브로커 [%s]에 연결됨\n", subscriberOpts.ClientID, subscriberOpts.Servers[0].String())
 
 	// 메시지가 정확히 한 번 전달되도록 qos=2로 설정
 	if token := subscriberClient.Subscribe(topic, 2, messageHandler); token.Wait() && token.Error() != nil {
