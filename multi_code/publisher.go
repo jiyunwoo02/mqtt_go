@@ -38,12 +38,14 @@ func main() {
 
 	// Enter a loop to get user input and publish messages
 	// 사용자가 입력을 완료하고 엔터 키를 누르면 해당 입력을 한 줄로 받아들인다.
-	scanner := bufio.NewScanner(os.Stdin) // bufio.Scanner는 줄바꿈(Newline)을 기준으로 입력을 구분
+
+	// 1. 표준 입력(키보드 입력)을 처리하기 위해 os.Stdin을 바탕으로 스캐너 객체를 생성
+	scanner := bufio.NewScanner(os.Stdin) // 1-1. bufio.Scanner는 줄바꿈(Newline)을 기준으로 입력을 구분,  엔터(줄바꿈)를 누를 때마다 한 줄씩 읽는다
 	fmt.Printf("Enter messages to publish to topic '%s' (type 'exit' to quit): ", topic)
-	for scanner.Scan() {
-		// Scan(): 토큰 읽기 시도 (실패한 경우 false 반환, 일반적으로 더 읽을 수 없는 경우), Text(): 읽어온 토큰을 반환
+	for scanner.Scan() { // 2. 한 줄의 입력을 읽기 시도, 성공 시 true 반환, 입력 더 없거나 실패 시 false 반환
+		// 2-1. Scan(): 토큰 읽기 시도 (실패한 경우 false 반환, 일반적으로 더 읽을 수 없는 경우), Text(): 읽어온 토큰을 반환
 		// 토큰: 패턴에 해당하는 만큼 읽어온 문자열 (줄 단위로 읽을 때는 한 줄)
-		message := scanner.Text()
+		message := scanner.Text()               // 3. 가장 최근에 읽어온 줄을 문자열로 반환, 사용자가 입력한 한 줄의 텍스트를 message에 저장
 		if strings.ToLower(message) == "exit" { // 사용자 입력을 소문자로 변환하여 비교 (Exit, EXIT, ...)
 			break // 현재 실행 중인 for 루프를 나가게 됨
 		}

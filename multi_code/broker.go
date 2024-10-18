@@ -57,13 +57,26 @@ func startBroker(port string, brokerID string) {
 }
 
 func main() {
+	// 사용자가 명령행에서 입력하는 모든 인자는 자동으로 Go 런타임에 의해 os.Args에 저장된다.
+	// - Go 런타임: Go 프로그램이 실행될 때 시스템과 소통하고 프로그램을 관리하는 Go의 실행 환경
 	// Package flag implements command-line flag parsing.
 
-	// 플래그 정의: 기본값은 ":1883"과 "broker1", 포인터 변수로 저장
+	// os.Args는 프로그램 실행 시 입력된 모든 명령행 인자를 문자열 슬라이스([]string)로 제공
+	// flag는 os.Args에 저장된 명령행 인자를 기반으로 동작한다. 내부적으로 os.Args를 읽어 플래그와 남은 인자를 처리한다.
+	for i, arg := range os.Args {
+		fmt.Printf("Args[%d]: %s\n", i, arg)
+	}
+
 	// String defines a string flag with specified name, default value, and usage string.
 	// The return value is the address of a string variable that stores the value of the flag.
-	// 첫번째 인자는 옵션명(예: -port), 두번째 인자는 기본값(플래그 미제공 시), 세번째 인자는 인자에 대한 설명(--help)
+
+	// 플래그를 정의할 때 플래그 이름과 기본값, 설명을 포인터로 반환하지만 -> 내부적으로 각 플래그는 Flag 구조체에 필드로 저장
+	// -> flag.String()은 Flag 구조체에 플래그 이름, 기본값, 설명을 저장
+	// 실제 플래그 값은 포인터(*string)로 관리
+
+	// 첫번째 인자는 플래그명(예: -port), 두번째 인자는 기본값(플래그 미제공 시), 세번째 인자는 인자에 대한 설명(--help)
 	// -> 사용자가 명령행에서 -port나 -id를 입력하지 않으면, 기본값이 사용된다!
+	// 플래그 정의: 기본값은 ":1883"과 "broker1", 포인터 변수로 저장
 	port := flag.String("port", ":1883", "The port on which the broker should run")
 	brokerID := flag.String("id", "broker1", "The ID of the broker")
 
@@ -71,19 +84,67 @@ func main() {
 
 	// 파싱 전에 플래그 값 출력 -> 기본값이 해당 메모리 위치에 저장되어 있다.
 	// 파싱 전후의 플래그 값은 메모리 주소는 동일 but 그 주소에 저장된 값이 변경될 수 있다!
-	fmt.Printf("Before Parsing - Port: %s in address: %p\n", *port, port)
+	fmt.Printf("\nBefore Parsing - Port: %s in address: %p\n", *port, port)
 	fmt.Printf("Before Parsing - Broker ID: %s in address: %p\n", *brokerID, brokerID)
 
 	// 파싱 전에 남은 인자 출력 -> 플래그와 남은 인자가 구분되지 않은 상태 -> 남은 인자 정보 제공 X
 	// 시도했으나, flag.Args()는 flag.Parse()가 호출된 이후에만 명령행에서 전달된 남은 인자를 반환
 	fmt.Printf("Before Parsing - Remaining args: %v\n", flag.Args())
 
-	// 파싱 후 상태 확인: flag.Parse()가 호출된 후에만 true를 반환
+	// 파싱 전 상태 확인: flag.Parse()가 호출된 후에만 true를 반환
 	fmt.Printf("Before Parsing - Whether or not it has been parsed: %t\n\n", flag.Parsed())
+
+	/*
+		.\broker.exe -port="1884" id="dh"
+
+		- 프로그램이 시작될 때, 명령행 인자 전체가 os.Args 슬라이스에 저장된다.
+		- []string{"./broker.exe", "-port=1884", "id=dh"} 형식으로 저장된다.
+		- 파싱 전까지는 각 스트링 포인터의 메모리 주소에 기본값이 들어가 있다!
+
+		1. 파싱 전:
+
+		Before Parsing - Port: :1883 in address: 0xc000024200
+		Before Parsing - Broker ID: broker1 in address: 0xc000024210
+		Before Parsing - Remaining args: []
+		Before Parsing - Whether or not it has been parsed: false
+
+		- 각 플래그는 포인터로 정의된다. (각각 *string 타입의 포인터, 이 포인터는 플래그의 기본값이 저장된 메모리 위치를 가리킨다.)
+		- 이 포인터는 메모리의 특정 위치를 가리키고 기본값을 저장한다. (파싱 전에는 플래그의 기본값만 사용 :1883과 broker1)
+		- 사용자가 명령행 인자를 입력했더라도, 파싱이 진행되지 않으면 그 값은 무시된다. (명령행 인자 처리 전)
+		- 명령행 인자들이 아직 처리되지 않았기에, 남은 인자도 비어있다.
+
+		2. 파싱 진행 (flag.Parse()):
+
+		Parsing Complete
+
+		After Parsing - Whether or not it has been parsed: true
+		After Parsing - Port: 1884 in address: 0xc000024200
+		After Parsing - Broker ID: broker1 in address: 0xc000024210
+		After Parsing - First remaining argument: id=dh
+		After Parsing - Second remaining argument:
+
+		After Parsing - Number of flags set: 1
+		After Parsing - Number of remaining arguments: 1
+		After Parsing - Remaining args: [id=dh]
+
+		- Parse()가 호출되면, 프로그램은 명령행 인자들을 os.Args를 기반으로 처리하기 시작한다.
+		- 내부적으로 os.Args 슬라이스를 읽어와 모두 순회하는데, 슬라이스에서 플래그 형식(-name=value 또는 -name value, 플래그 이름과 값을 = 또는 공백으로 구분)의 인자를 찾는다.
+		- 명령행 인자에서 플래그 형식의 값을 파악한다. -> 해당 형식이 아니면 남은 인자로 처리
+		- 명령행 인자를 파싱하고, 사용자가 입력한 각 인자를 정의된 플래그 이름을 비교한다.
+		- 일치하는 플래그가 발견되면, 해당 플래그의 포인터가 가리키는 메모리 위치에 사용자가 입력한 값을 덮어씌운다.
+		- 플래그가 없으면, 기본값이 그대로 유지된다.
+
+		3. 요약
+		- 파싱 전: 플래그는 기본값을 사용하며, 명령행 인자는 무시된다.
+		- 파싱 중: 명령행 인자와 플래그 이름을 비교하여, 일치하면 값이 덮어씌워진다.
+		- 파싱 후: 사용자가 입력한 값이 포인터가 가리키는 메모리 위치에 저장되며, 프로그램에서 그 값을 사용한다.
+	*/
 
 	// 명령행 인자 파싱 -> 해당 플래그 이름과 일치하는 변수에 값을 저장
 	// -> 반드시 flag가 정의가 된 후, flag 값에 접근하기 전 호출
 	// 예) -port="1884" → 플래그 port의 값은 "1884"로 설정
+
+	// Parse parses the command-line flags from os.Args[1:].
 	flag.Parse()
 	fmt.Println("Parsing Complete\n")
 
@@ -101,7 +162,7 @@ func main() {
 	fmt.Printf("After Parsing - First remaining argument: %s\n", flag.Arg(0))
 	fmt.Printf("After Parsing - Second remaining argument: %s\n\n", flag.Arg(1))
 
-	// NFlag returns the number of command-line flags that have been set. (입력한 명령행 인자 중 플래그로 처리된 개수)\
+	// NFlag returns the number of command-line flags that have been set. (입력한 명령행 인자 중 플래그로 처리된 개수)
 	// 사용자가 명령행에서 입력한 인자들 중 플래그 형식(-name=value)으로 정의된 것들만 카운트
 	fmt.Printf("After Parsing - Number of flags set: %d\n", flag.NFlag())
 
@@ -116,7 +177,14 @@ func main() {
 	// If you're using the flags themselves, they are all pointers;
 	// flag 패키지가 리턴하는 값은 포인터 -> 값을 출력하려면 역참조해서 값을 가져오도록 해야한다!
 
-	fmt.Printf("Starting broker with ID: %s on port: %s\n\n", *brokerID, *port)
+	// 모든 플래그를 사전 순으로 출력
+	fmt.Println("Print all the flags in lexicographical order :")
+	flag.VisitAll(func(f *flag.Flag) {
+		fmt.Printf("-- Name: %s, Value: %s, Default: %s, Usage: %s\n",
+			f.Name, f.Value.String(), f.DefValue, f.Usage) // Value.String(): 플래그의 현재 값
+	})
+
+	fmt.Printf("\nStarting broker with ID: %s on port: %s\n\n", *brokerID, *port)
 
 	// 역참조 시 port와 brokerID는 string 타입
 	startBroker(*port, *brokerID)
@@ -133,21 +201,14 @@ Go의 flag 패키지는 명령행 인자에서 플래그 이름에 맞게 변수
 type Flag struct {
 	Name     string // name as it appears on command line
 	Usage    string // help message
-	Value    Value  // value as set -> 플래그 값(string, int..)
+	Value    Value  // value as set -> 플래그 값(string, int..) => 플래그의 값 자체는 Value 인터페이스를 통해 관리
 	DefValue string // default value (as text); for usage message
 }
 
-~ 플래그 정의 및 관리: 모든 플래그가 필드로 저장된다. 플래그 이름과 값(포인터로 관리) 간의 매핑을 관리한다.
-type FlagSet struct {
-	// Usage is the function called when an error occurs while parsing flags.
-	// The field is a function (not a method) that may be changed to point to
-	// a custom error handler. What happens after Usage is called depends
-	// on the ErrorHandling setting; for the command line, this defaults
-	// to ExitOnError, which exits the program after calling Usage.
-	Usage func()
-	// contains filtered or unexported fields
-	// 내부 필드(비공개)
-	// 플래그 이름과 값을 맵을 통해 연결, 사용자가 명령행에서 전달한 값을 맵으로 일시적 저장
+type Value interface { // 모든 플래그 값의 타입에 관계없이 값을 문자열로 변환하여 반환
+	// 플래그 값은 실제 메모리 위치를 가리키는 포인터로 관리된다. -> *string 포인터를 통해 플래그 값에 접근하고 수정
+	String() string // 플래그 값을 문자열 형태로 반환
+	Set(string) error // 명령행에서 받은 문자열 인자를 해당 타입으로 변환하고 플래그 값으로 설정
 }
 
 - 포인터를 사용해 동적으로 값을 관리, 명령행에서 전달된 값이 포인터가 가리키는 메모리에 저장
