@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -58,12 +57,12 @@ func main() {
 	brokerID := flag.String("id", "broker1", "The ID of the broker")
 
 	flag.Parse()
-	fmt.Println("Parsing Complete\n")
+	// fmt.Println("Parsing Complete\n")
 
-	fmt.Printf("After Parsing - Port: %s in address: %p\n", *port, port)
-	fmt.Printf("After Parsing - Broker ID: %s in address: %p\n", *brokerID, brokerID)
+	// fmt.Printf("After Parsing - Port: %s in address: %p\n", *port, port)
+	// fmt.Printf("After Parsing - Broker ID: %s in address: %p\n", *brokerID, brokerID)
 
-	fmt.Printf("\nStarting broker with ID: %s on port: %s\n\n", *brokerID, *port)
+	// fmt.Printf("\nStarting broker with ID: %s on port: %s\n\n", *brokerID, *port)
 
 	startBroker(*port, *brokerID)
 }
