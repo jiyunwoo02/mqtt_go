@@ -72,6 +72,8 @@ func main() {
 	}
 	defer client.Disconnect(250)
 
+	var conn net.Conn
+
 	// 소켓 서버 설정: 포트(-p)가 제공된 경우에만!
 	// 1. 포트 제공시 -> 소켓 서버 시작 및 구독자 연결 대기
 	if *port != "" {
@@ -90,44 +92,51 @@ func main() {
 
 		// 2) TCP 서버에서 listener 객체에 10초 타임아웃 설정
 		timeoutDuration := 10 * time.Second
+
 		// net.Listener 인터페이스 -> *net.TCPListener로 타입 변환 => SetDeadline: 특정 시간까지의 마감 시점을 설정하는 역할
+		// 10초 이내에 연결이 수립되지 않으면 자동으로 대기가 종료되도록
 		listener.(*net.TCPListener).SetDeadline(time.Now().Add(timeoutDuration))
 
 		fmt.Printf("-- Waiting for subscriber connection on port %s...\n", *port)
 
 		// 3) 연결 요청 대기
-		conn, err := listener.Accept() // Accept waits for and returns the next connection to the listener.
+		// accept()로 실제 연결 수락을 시도하고, 타임아웃이 발생하면 accept()가 에러와 함께 리턴되어 발행자가 소켓을 닫고 MQTT 통신으로 전환
+		conn, err = listener.Accept() // Accept waits for and returns the next connection to the listener.
 
 		if err != nil {
 			// 타임아웃 발생 시 에러 메시지와 함께 MQTT로 전환
 			fmt.Println("-- Subscriber connection timeout. Switching to MQTT only.")
-			conn = nil // MQTT 모드로 진행하기 위해 conn을 nil로 설정
+			conn = nil       // MQTT 모드로 진행하기 위해 conn을 nil로 설정
+			listener.Close() // 소켓 리스너를 닫아 이후 연결 시도 시 거부되도록 설정
+			listener = nil   // 리스너를 nil로 설정하여 추가 참조 방지
 		} else {
 			fmt.Println("-- Subscriber connected on socket.")
 		}
+	} else { // 포트가 제공되지 않은 경우
+		fmt.Println("-- No port provided. Only MQTT publishing will occur.")
+	}
 
-		// -- 소켓 서버에 구독자가 연결된 후에, 발행할 메시지를 입력 받도록 하자
-		// 사용자로부터 발행할 메시지 입력 받기
-		scanner := bufio.NewScanner(os.Stdin) // 표준 입력(키보드)을 줄 단위로 읽기 위한 스캐너 생성
+	// -- 소켓 서버에 구독자가 연결된 후에, 발행할 메시지를 입력 받도록 하자
+	// 사용자로부터 발행할 메시지 입력 받기
+	scanner := bufio.NewScanner(os.Stdin) // 표준 입력(키보드)을 줄 단위로 읽기 위한 스캐너 생성
 
-		// 메시지 발행 후, 또 메시지를 입력받도록 함
-		// exit 입력 시 발행 종료
-		for {
-			fmt.Print("Enter the message to publish (type 'exit' to quit): ")
-			scanner.Scan()            // 사용자 입력을 대기하다가 엔터를 누르면 읽기 -> 읽고 내부 버퍼에 저장
-			message := scanner.Text() // 읽은 입력을 문자열로 반환하여 변수에 저장.
+	// 메시지 발행 후, 또 메시지를 입력받도록 함
+	// exit 입력 시 발행 종료
+	for {
+		fmt.Print("Enter the message to publish (type 'exit' to quit): ")
+		scanner.Scan()            // 사용자 입력을 대기하다가 엔터를 누르면 읽기 -> 읽고 내부 버퍼에 저장
+		message := scanner.Text() // 읽은 입력을 문자열로 반환하여 변수에 저장.
 
-			if strings.ToLower(message) == "exit" {
-				// 사용자가 발행자 측에서 exit 입력 시 발행자 프로그램 종료
-				// 수신자 측에서도 알 수 있게 함, 그 후 수신자 측에서 요약 결과 출력
-				exitTopic := *topic + "/exit"
-				client.Publish(exitTopic, 2, false, "exit")
-				fmt.Println("-- Exiting publisher.")
-				break
-			}
-
-			// 메시지 발행 시작 (MQTT와 소켓 모두로 전송)
-			publishMessages(client, *topic, strings.TrimSpace(message), *n, *qos, conn)
+		if strings.ToLower(message) == "exit" {
+			// 사용자가 발행자 측에서 exit 입력 시 발행자 프로그램 종료
+			// 수신자 측에서도 알 수 있게 함, 그 후 수신자 측에서 요약 결과 출력
+			exitTopic := *topic + "/exit"
+			client.Publish(exitTopic, 2, false, "exit")
+			fmt.Println("-- Exiting publisher.")
+			break
 		}
+
+		// 메시지 발행 시작 (MQTT와 소켓 모두로 전송)
+		publishMessages(client, *topic, strings.TrimSpace(message), *n, *qos, conn)
 	}
 }
