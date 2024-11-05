@@ -1,4 +1,3 @@
-// 발행자가 exit 입력시 구독자도 종료되어야 하는데 종료되지 않음
 package main
 
 import (
@@ -15,14 +14,13 @@ import (
 
 // 각 구독자의 결과를 저장하는 구조체
 type SubscriberResult struct {
-	ID           int  // 구독자 클라이언트 아이디
-	ReceivedMQTT int  // MQTT를 통해 받은 메시지 수
-	Expected     int  // 기대 메시지 수
-	IsSuccessful bool // 수신 성공 여부
+	ID           int // 구독자 클라이언트 아이디
+	ReceivedMQTT int // MQTT를 통해 받은 메시지 수
+	Expected     int // 기대 메시지 수
 }
 
 // MQTT 메시지 수신 함수
-func subscribeToMQTT(client mqtt.Client, topic string, id int, wg *sync.WaitGroup, results chan<- SubscriberResult, stopChan chan struct{}, closeOnce *sync.Once) {
+func subscribeToMQTT(client mqtt.Client, topic string, id int, wg *sync.WaitGroup, results chan<- SubscriberResult, stopChan chan struct{}) {
 	defer wg.Done()
 
 	receivedCount := 0
@@ -42,10 +40,8 @@ func subscribeToMQTT(client mqtt.Client, topic string, id int, wg *sync.WaitGrou
 	exitTopic := topic + "/exit"
 	client.Subscribe(exitTopic, 2, func(_ mqtt.Client, msg mqtt.Message) {
 		if string(msg.Payload()) == "exit" {
-			fmt.Printf("-> Received exit message. Shutting down subscriber %d.\n", id)
-			closeOnce.Do(func() { // 한 번만 stopChan을 닫도록 보장
-				close(stopChan)
-			})
+			fmt.Printf("-> Subscriber %d received exit message. Shutting down.\n", id)
+			close(stopChan) // 모든 구독자에게 종료 신호 전송
 		}
 	})
 
@@ -53,7 +49,7 @@ func subscribeToMQTT(client mqtt.Client, topic string, id int, wg *sync.WaitGrou
 	client.Subscribe(topic, 2, func(_ mqtt.Client, msg mqtt.Message) {
 		select {
 		case <-stopChan:
-			return
+			return // stopChan이 닫히면 메시지 수신 중단
 		default:
 			payload := string(msg.Payload())
 			fmt.Printf("[Subscriber %d] Received from MQTT: %s\n", id, payload)
@@ -63,11 +59,11 @@ func subscribeToMQTT(client mqtt.Client, topic string, id int, wg *sync.WaitGrou
 				ID:           id,
 				ReceivedMQTT: receivedCount,
 				Expected:     expectedCount,
-				IsSuccessful: receivedCount == expectedCount,
 			}
 		}
 	})
-	<-stopChan
+
+	<-stopChan // 종료 신호가 올 때까지 대기
 }
 
 // 소켓 메시지를 수신하고 출력하는 함수
@@ -94,13 +90,13 @@ func main() {
 	var wg sync.WaitGroup
 	var conn net.Conn
 	var err error
-	var closeOnce sync.Once
+
 	results := make(chan SubscriberResult, *sn)
-	stopChan := make(chan struct{})
+	stopChan := make(chan struct{}) // 종료 신호용 채널
 
 	if *port != "" {
 		conn, err = net.Dial("tcp", "localhost:"+*port)
-		if err != nil { // 발행자가 소켓을 닫아버렸을 때 수신자가 연결을 시도하지 않도록
+		if err != nil {
 			fmt.Println("-- Publisher not using port. Switching to MQTT only.")
 		} else {
 			fmt.Println("-- Connected to publisher socket.")
@@ -113,7 +109,6 @@ func main() {
 
 	for i := 1; i <= *sn; i++ {
 		wg.Add(1)
-
 		clientID := fmt.Sprintf("%s_%d", *id, i)
 		opts := mqtt.NewClientOptions().AddBroker(*address).SetClientID(clientID)
 		client := mqtt.NewClient(opts)
@@ -121,13 +116,12 @@ func main() {
 			log.Fatalf("-- Failed to connect to broker: %v", token.Error())
 		}
 		defer client.Disconnect(250)
-
-		go subscribeToMQTT(client, *topic, i, &wg, results, stopChan, &closeOnce)
+		go subscribeToMQTT(client, *topic, i, &wg, results, stopChan)
 	}
 
 	go func() {
-		wg.Wait()
-		close(results)
+		wg.Wait()      // 모든 고루틴의 작업이 완료될 때까지 대기 -> 조기 종료 문제 방지
+		close(results) // 모든 고루틴이 완료된 후에만 그 고루틴이 종료되어 다음 단계(예: close(results))로 넘어간다
 	}()
 
 	totalMessages := 0
@@ -147,16 +141,16 @@ func main() {
 		}
 	}
 
-	// 요약 결과 출력
-	fmt.Printf("\n모든 구독자(%d명) 중 %d명이 메시지를 정상적으로 수신했습니다.\n", *sn, successfulCount)
-	fmt.Printf("정상 수신 구독자 수: %d\n", successfulCount)
-	fmt.Printf("비정상 수신 구독자 수: %d\n", len(unsuccessfulSubscribers))
-	for _, id := range unsuccessfulSubscribers {
-		fmt.Printf("- Subscriber%d\n", id)
-	}
+	// // 요약 결과 출력
+	// fmt.Printf("\n모든 구독자(%d명) 중 %d명이 메시지를 정상적으로 수신했습니다.\n", *sn, successfulCount)
+	// fmt.Printf("정상 수신 구독자 수: %d\n", successfulCount)
+	// fmt.Printf("비정상 수신 구독자 수: %d\n", len(unsuccessfulSubscribers))
+	// for _, id := range unsuccessfulSubscribers {
+	// 	fmt.Printf("- Subscriber%d\n", id)
+	// }
 
-	fmt.Printf("총 구독자 수: %d\n", *sn)
-	fmt.Printf("성공적으로 수신한 메시지: %d/%d (%.1f%%)\n", totalReceived, totalMessages, (float64(totalReceived)/float64(totalMessages))*100)
+	// fmt.Printf("총 구독자 수: %d\n", *sn)
+	// fmt.Printf("성공적으로 수신한 메시지: %d/%d (%.1f%%)\n", totalReceived, totalMessages, (float64(totalReceived)/float64(totalMessages))*100)
 
-	fmt.Println(">> All subscribers shutting down.")
+	// fmt.Println(">> All subscribers shutting down.")
 }
