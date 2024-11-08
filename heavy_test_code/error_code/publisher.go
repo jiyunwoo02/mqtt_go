@@ -8,7 +8,7 @@ import (
 	"net" // Go에서 소켓 통신을 활용하기 위해서는 net 패키지 사용
 	"os"
 	"strings"
-	"time"
+	// "time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
@@ -34,7 +34,7 @@ func publishMessages(client mqtt.Client, topic string, message string, n int, qo
 			}
 		}
 
-		time.Sleep(1 * time.Second) // 발행 간격
+		// time.Sleep(1 * time.Second) // 발행 간격
 	}
 
 	// 총 메시지를 몇 번 발송했는지 확인 -> 사용자가 입력한 플래그 n과 일치해야 함!

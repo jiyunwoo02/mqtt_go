@@ -30,7 +30,7 @@ func publishMessages(client mqtt.Client, topic string, message string, n int, qo
 		token.Wait()                                          // 발행이 완료될 때까지 대기
 		fmt.Printf("- Published: %s\n", msg)
 
-		time.Sleep(1 * time.Second) // 발행 간격 조정 (1sec)
+		// time.Sleep(1 * time.Second) // 발행 간격 조정 (1sec)
 	}
 
 	// 2. 소켓을 통해 메시지 전송 (옵션)
